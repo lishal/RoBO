@@ -30,7 +30,7 @@ def retransform(s_transform, s_min, s_max):
 
 def fabolas(objective_function, lower, upper, s_min, s_max,
             n_init=40, num_iterations=100, subsets=[256, 128, 64],
-            burnin=100, chain_length=100, n_hypers=12, output_path=None, rng=None):
+            burnin=100, chain_length=100, n_hypers=12, output_path=None, rng=None,budget=None):
     """
     Fast Bayesian Optimization of Machine Learning Hyperparameters
     on Large Datasets
@@ -234,56 +234,60 @@ def fabolas(objective_function, lower, upper, s_min, s_max,
     c = np.array(c)
 
     for it in range(n_init, num_iterations):
-        logger.info("Start iteration %d ... ", it)
+        if budget is not None and budget > 0:
+            logger.info("Start iteration %d ... ", it)
 
-        start_time = time.time()
+            start_time = time.time()
 
-        # Train models
-        model_objective.train(X, y, do_optimize=True)
-        model_cost.train(X, c, do_optimize=True)
+            # Train models
+            model_objective.train(X, y, do_optimize=True)
+            model_cost.train(X, c, do_optimize=True)
 
-        # Estimate incumbent by projecting all observed points to the task of interest and
-        # pick the point with the lowest mean prediction
-        incumbent, incumbent_value = projected_incumbent_estimation(model_objective, X[:, :-1],
-                                                                    proj_value=1)
-        incumbents.append(incumbent[:-1])
-        logger.info("Current incumbent %s with estimated performance %f",
-                    str(incumbent), np.exp(incumbent_value))
+            # Estimate incumbent by projecting all observed points to the task of interest and
+            # pick the point with the lowest mean prediction
+            incumbent, incumbent_value = projected_incumbent_estimation(model_objective, X[:, :-1],
+                                                                        proj_value=1)
+            incumbents.append(incumbent[:-1])
+            logger.info("Current incumbent %s with estimated performance %f",
+                        str(incumbent), np.exp(incumbent_value))
 
-        # Maximize acquisition function
-        acquisition_func.update(model_objective, model_cost)
-        new_x = maximizer.maximize()
+            # Maximize acquisition function
+            acquisition_func.update(model_objective, model_cost)
+            new_x = maximizer.maximize()
 
-        s = retransform(new_x[-1], s_min, s_max)  # Map s from log space to original linear space
+            s = retransform(new_x[-1], s_min, s_max)  # Map s from log space to original linear space
+            if budget is not None:
+                budget = budget - s
+                logger.info("Remaining budget is %f",budget)
 
-        time_overhead.append(time.time() - start_time)
-        logger.info("Optimization overhead was %f seconds", time_overhead[-1])
+            time_overhead.append(time.time() - start_time)
+            logger.info("Optimization overhead was %f seconds", time_overhead[-1])
 
-        # Evaluate the chosen configuration
-        logger.info("Evaluate candidate %s on subset size %f", str(new_x[:-1]), s)
-        start_time = time.time()
-        new_y, new_c = objective_function(new_x[:-1], s)
-        time_func_eval.append(time.time() - start_time)
+            # Evaluate the chosen configuration
+            logger.info("Evaluate candidate %s on subset size %f", str(new_x[:-1]), s)
+            start_time = time.time()
+            new_y, new_c = objective_function(new_x[:-1], s)
+            time_func_eval.append(time.time() - start_time)
 
-        logger.info("Configuration achieved a performance of %f with cost %f", new_y, new_c)
-        logger.info("Evaluation of this configuration took %f seconds", time_func_eval[-1])
+            logger.info("Configuration achieved a performance of %f with cost %f", new_y, new_c)
+            logger.info("Evaluation of this configuration took %f seconds", time_func_eval[-1])
 
-        # Add new observation to the data
-        X = np.concatenate((X, new_x[None, :]), axis=0)
-        y = np.concatenate((y, np.log(np.array([new_y]))), axis=0)  # Model the target function on a logarithmic scale
-        c = np.concatenate((c, np.log(np.array([new_c]))), axis=0)  # Model the cost function on a logarithmic scale
+            # Add new observation to the data
+            X = np.concatenate((X, new_x[None, :]), axis=0)
+            y = np.concatenate((y, np.log(np.array([new_y]))), axis=0)  # Model the target function on a logarithmic scale
+            c = np.concatenate((c, np.log(np.array([new_c]))), axis=0)  # Model the cost function on a logarithmic scale
 
-        runtime.append(time.time() - time_start)
+            runtime.append(time.time() - time_start)
 
-        if output_path is not None:
-            data = dict()
-            data["optimization_overhead"] = time_overhead[it]
-            data["runtime"] = runtime[it]
-            data["incumbent"] = incumbents[it].tolist()
-            data["time_func_eval"] = time_func_eval[it]
-            data["iteration"] = it
+            if output_path is not None:
+                data = dict()
+                data["optimization_overhead"] = time_overhead[it]
+                data["runtime"] = runtime[it]
+                data["incumbent"] = incumbents[it].tolist()
+                data["time_func_eval"] = time_func_eval[it]
+                data["iteration"] = it
 
-            json.dump(data, open(os.path.join(output_path, "fabolas_iter_%d.json" % it), "w"))
+                json.dump(data, open(os.path.join(output_path, "fabolas_iter_%d.json" % it), "w"))
 
     # Estimate the final incumbent
     model_objective.train(X, y, do_optimize=True)

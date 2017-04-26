@@ -9,8 +9,9 @@ logging.basicConfig(level=logging.INFO)
 from robo.solver.hyperband_datasets_size import HyperBand_DataSubsets
 
 from hpolib.benchmarks.ml.svm_benchmark import SvmOnMnist, SvmOnVehicle, SvmOnCovertype
-from hpolib.benchmarks.ml.residual_networks import ResidualNeuralNetworkOnCIFAR10
-from hpolib.benchmarks.ml.conv_net import ConvolutionalNeuralNetworkOnCIFAR10, ConvolutionalNeuralNetworkOnSVHN
+#from hpolib.benchmarks.ml.residual_networks import ResidualNeuralNetworkOnCIFAR10
+from hpolib.benchmarks.ml.conv_net import ConvolutionalNeuralNetworkOnCIFAR10
+#, ConvolutionalNeuralNetworkOnSVHN
 
 
 run_id = int(sys.argv[1])
@@ -18,7 +19,7 @@ dataset = sys.argv[2]
 seed = int(sys.argv[3])
 
 rng = np.random.RandomState(seed)
-
+s_min = None
 if dataset == "mnist":
     f = SvmOnMnist(rng=rng)
     output_path = "./experiments/fabolas/results/svm_%s/hyperband_%d" % (dataset, run_id)
@@ -31,18 +32,19 @@ elif dataset == "covertype":
 elif dataset == "cifar10":
     f = ConvolutionalNeuralNetworkOnCIFAR10(rng=rng)
     output_path = "./experiments/fabolas/results/cnn_%s/hyperband_%d" % (dataset, run_id)
+    s_min = 512./40000
 elif dataset == "svhn":
     f = ConvolutionalNeuralNetworkOnSVHN(rng=rng)
     output_path = "./experiments/fabolas/results/cnn_%s/hyperband_%d" % (dataset, run_id)
-elif dataset == "res_net":
-    f = ResidualNeuralNetworkOnCIFAR10(rng=rng)
-    output_path = "./experiments/fabolas/results/res_%s/hyperband_%d" % (dataset, run_id)
+#elif dataset == "res_net":
+#    f = ResidualNeuralNetworkOnCIFAR10(rng=rng)
+#    output_path = "./experiments/fabolas/results/res_%s/hyperband_%d" % (dataset, run_id)
 
 
 os.makedirs(output_path, exist_ok=True)
 
 eta = 3.
-B = -int(np.log(f.s_min)/np.log(3))
+B = -int(np.log(s_min)/np.log(3))
 
 print(B)
 

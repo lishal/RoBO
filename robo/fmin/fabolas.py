@@ -30,7 +30,7 @@ def retransform(s_transform, s_min, s_max):
 
 def fabolas(objective_function, lower, upper, s_min, s_max,
             n_init=40, num_iterations=100, subsets=[256, 128, 64],
-            burnin=100, chain_length=100, n_hypers=12, output_path=None, rng=None,budget=None):
+            burnin=100, chain_length=100, n_hypers=12, output_path=None, rng=None,budget=None,run_time=None):
     """
     Fast Bayesian Optimization of Machine Learning Hyperparameters
     on Large Datasets
@@ -90,6 +90,7 @@ def fabolas(objective_function, lower, upper, s_min, s_max,
     time_func_eval = []
     time_overhead = []
     incumbents = []
+    incumbents_value = []
     runtime = []
 
     X = []
@@ -214,6 +215,7 @@ def fabolas(objective_function, lower, upper, s_min, s_max,
 
         # Estimate incumbent as the best observed value so far
         best_idx = np.argmin(y)
+        print(x)
         incumbents.append(X[best_idx][:-1])  # Incumbent is always on s=s_max
 
         time_overhead.append(time.time() - start_time_overhead)
@@ -234,7 +236,7 @@ def fabolas(objective_function, lower, upper, s_min, s_max,
     c = np.array(c)
 
     for it in range(n_init, num_iterations):
-        if budget is not None and budget > 0:
+        if ((budget is None or budget > 0) and (run_time is None or time.time()-time_start<run_time)):    
             logger.info("Start iteration %d ... ", it)
 
             start_time = time.time()
@@ -248,17 +250,21 @@ def fabolas(objective_function, lower, upper, s_min, s_max,
             incumbent, incumbent_value = projected_incumbent_estimation(model_objective, X[:, :-1],
                                                                         proj_value=1)
             incumbents.append(incumbent[:-1])
+            incumbents_value.append(incumbent_value)
             logger.info("Current incumbent %s with estimated performance %f",
                         str(incumbent), np.exp(incumbent_value))
 
             # Maximize acquisition function
             acquisition_func.update(model_objective, model_cost)
             new_x = maximizer.maximize()
+            print(s_min,s_max)
 
             s = retransform(new_x[-1], s_min, s_max)  # Map s from log space to original linear space
             if budget is not None:
                 budget = budget - s
-                logger.info("Remaining budget is %f",budget)
+                logger.info("Remaining budget is %d", budget)
+            if run_time is not None:
+                logger.info("Total duration is %f",time.time() - time_start) 
 
             time_overhead.append(time.time() - start_time)
             logger.info("Optimization overhead was %f seconds", time_overhead[-1])
@@ -293,12 +299,15 @@ def fabolas(objective_function, lower, upper, s_min, s_max,
     model_objective.train(X, y, do_optimize=True)
     incumbent, incumbent_value = projected_incumbent_estimation(model_objective, X[:, :-1],
                                                                 proj_value=1)
+    incumbents.append(incumbent[:-1])
+    incumbents_value.append(incumbent_value)
     logger.info("Final incumbent %s with estimated performance %f",
                 str(incumbent), incumbent_value)
 
     results = dict()
     results["x_opt"] = incumbent[:-1].tolist()
     results["incumbents"] = [inc.tolist() for inc in incumbents]
+    results["incumbents_value"] = incumbents_value
     results["runtime"] = runtime
     results["overhead"] = time_overhead
     results["time_func_eval"] = time_func_eval

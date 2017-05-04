@@ -25,6 +25,7 @@ if dataset == "mnist":
     num_iterations = 80
     output_path = "./experiments/fabolas/results/svm_%s/fabolas_%d" % (dataset, run_id)
     s_max = f.train.shape[0]
+    print("training set size: ",s_max)
     s_min = 100  # 10 * number of classes
     subsets = [64., 32, 16, 8]
 
@@ -33,6 +34,7 @@ elif dataset == "vehicle":
     num_iterations = 80
     output_path = "./experiments/fabolas/results/svm_%s/fabolas_%d" % (dataset, run_id)
     s_max = f.train.shape[0]
+    print("training set size: %d",s_max)
     s_min = 100  # 10 * number of classes
     subsets = [64., 32, 16, 8]
 
@@ -41,6 +43,7 @@ elif dataset == "covertype":
     num_iterations = 80
     output_path = "./experiments/fabolas/results/svm_%s/fabolas_%d" % (dataset, run_id)
     s_max = f.train.shape[0]
+    print("training set size: %d",s_max)
     s_min = 100  # 10 * number of classes
     subsets = [64., 32, 16, 8]
 
@@ -72,6 +75,12 @@ elif dataset == "res_net":
 os.makedirs(output_path, exist_ok=True)
 
 
+if 'loggingInitialized' not in locals():
+    loggingInitialized = True
+
+    path = output_path+'/RoBOlog.txt'
+    logging.basicConfig(level=logging.DEBUG,filename=path)
+
 def objective(x, s):
     dataset_fraction = s / s_max
 
@@ -93,22 +102,18 @@ results['y'] = results['y'].tolist()
 results['c'] = results['c'].tolist()
 
 test_error = []
-current_inc = None
-current_inc_val = None
+inc_dict = {}
 
 key = "incumbents"
 
 for inc in results["incumbents"]:
     print(inc)
-    if current_inc == inc:
-        test_error.append(current_inc_val)
+    if inc in inc_dict: 
+        test_error.append(inc_dict[inc])
     else:
         y = f.objective_function_test(inc)["function_value"]
         test_error.append(y)
-
-        current_inc = inc
-        current_inc_val = y
-    print(current_inc_val)
+        inc_dict[inc] = y
 
     results["test_error"] = test_error
 

@@ -135,32 +135,32 @@ class HyperBand_DataSubsets(BaseSolver):
 
             policy = mb.policies.successive_halving(
                 bandit, 1, eta, factor_pulls = 1)
+            for _ in range(s+1):
+                policy.play_n_rounds(1)
 
-            policy.play_n_rounds(s+1)
+                # the best configuration is the first arm
+                best_config_index = bandit[0].identifier
 
-            # the best configuration is the first arm
-            best_config_index = bandit[0].identifier
+                c = configurations[best_config_index]
+                v = - bandit[0].estimated_mean
 
-            c = configurations[best_config_index]
-            v = - bandit[0].estimated_mean
+                if v < self.incumbent_value:
+                    self.incumbent = c
+                    self.incumbent_value = v
 
-            if v < self.incumbent_value:
-                self.incumbent = c
-                self.incumbent_value = v
-
-            # book keeping
-            self.incumbents.append(self.incumbent)
-            self.incumbent_values.append(self.incumbent_value)
-            self.time_func_eval.append(sum([sum(a.costs) for a in arms]))
-            self.runtime.append(time.time() - self.time_start)
+                # book keeping
+                self.incumbents.append(self.incumbent)
+                self.incumbent_values.append(self.incumbent_value)
+                self.time_func_eval.append(sum([sum(a.costs) for a in arms]))
+                self.runtime.append(time.time() - self.time_start)
+                if self.output_path is not None:
+                    self.save_output()
 
             for i in range(len(arms)):
                 if len(arms[bandit[i].identifier].costs) == bandit[0].num_pulls:
                     self.X.append(arms[bandit[i].identifier].configuration)
                     self.Y.append(bandit[i].estimated_mean)
 
-            if self.output_path is not None:
-                self.save_output(it)
 
     def choose_next(self, X=None, Y=None):
         """
@@ -180,13 +180,12 @@ class HyperBand_DataSubsets(BaseSolver):
         """
         return self.task.configuration_space.sample_configuration()
 
-    def save_output(self, it):
+    def save_output(self):
         data = dict()
-        data["runtime"] = self.runtime[it]
+        data["runtime"] = self.runtime
         # Note that the ConfigSpace automatically converts to the [0, 1]^D space
-        data["incumbent"] = self.incumbents[it].get_array().tolist()
-        data["incumbents_value"] = self.incumbent_values[it]
-        data["time_func_eval"] = self.time_func_eval[it]
-        data["iteration"] = it
+        data["incumbent"] = [t.get_array().tolist() for t in self.incumbents] 
+        data["incumbents_value"] = self.incumbent_values
+        data["time_func_eval"] = self.time_func_eval
 
-        json.dump(data, open(os.path.join(self.output_path, "hyperband_iter_%d.json" % it), "w"))
+        json.dump(data, open(os.path.join(self.output_path, "hyperband_results.json"), "w"))

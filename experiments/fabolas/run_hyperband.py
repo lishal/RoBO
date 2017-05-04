@@ -61,7 +61,7 @@ print(B)
 
 opt = HyperBand_DataSubsets(f, eta, eta**(-(B-1)), output_path=output_path, rng=rng)
 
-opt.run(int(20 / B))
+opt.run(int(20 / B),12*3600)
 
 test_error = []
 for c in opt.incumbents:

@@ -89,7 +89,7 @@ class HyperBand_DataSubsets(BaseSolver):
         self.runtime = []
         self.time_start = None
 
-    def run(self, num_iterations=10, X=None, Y=None, overwrite=False):
+    def run(self, num_iterations=10, runtime=None,X=None, Y=None, overwrite=False):
         """
         The main optimization loop
 
@@ -114,52 +114,54 @@ class HyperBand_DataSubsets(BaseSolver):
         eta = self.eta
         num_subsets = -int(np.log(self.min_subset_fraction)/np.log(eta)) + 1
         subset_fractions = np.power(eta, -np.linspace(num_subsets-1, 0, num_subsets))
+        start_time = time.time()
 
         for it in range(num_iterations):
-            logger.info("Start iteration %d ... ", it)
+            if runtime is not None and time.time() - start_time < runtime:
+                logger.info("Start iteration %d ... ", it)
 
-            # compute the the value of s for this iteration
-            s = num_subsets - 1 - (it % num_subsets)
+                # compute the the value of s for this iteration
+                s = num_subsets - 1 - (it % num_subsets)
 
-            # the number of initial configurations
-            n = int(np.floor((num_subsets)/(s+1)) * eta**s)
+                # the number of initial configurations
+                n = int(np.floor((num_subsets)/(s+1)) * eta**s)
 
-            # set up the arms with random configurations
-            configurations = [self.choose_next() for i in range(n)]
-            arms = [hyperband_arm( self.task, c,
-                                   subset_fractions[(-s-1):]) for c in configurations]
+                # set up the arms with random configurations
+                configurations = [self.choose_next() for i in range(n)]
+                arms = [hyperband_arm( self.task, c,
+                                       subset_fractions[(-s-1):]) for c in configurations]
 
-            # set up the bandit and the policy and play
-            bandit = mb.bandits.last_n_pulls(n=1)
-            [bandit.add_arm(a) for a in arms]
+                # set up the bandit and the policy and play
+                bandit = mb.bandits.last_n_pulls(n=1)
+                [bandit.add_arm(a) for a in arms]
 
-            policy = mb.policies.successive_halving(
-                bandit, 1, eta, factor_pulls = 1)
-            for _ in range(s+1):
-                policy.play_n_rounds(1)
+                policy = mb.policies.successive_halving(
+                    bandit, 1, eta, factor_pulls = 1)
+                for _ in range(s+1):
+                    policy.play_n_rounds(1)
 
-                # the best configuration is the first arm
-                best_config_index = bandit[0].identifier
+                    # the best configuration is the first arm
+                    best_config_index = bandit[0].identifier
 
-                c = configurations[best_config_index]
-                v = - bandit[0].estimated_mean
+                    c = configurations[best_config_index]
+                    v = - bandit[0].estimated_mean
 
-                if v < self.incumbent_value:
-                    self.incumbent = c
-                    self.incumbent_value = v
+                    if v < self.incumbent_value:
+                        self.incumbent = c
+                        self.incumbent_value = v
 
-                # book keeping
-                self.incumbents.append(self.incumbent)
-                self.incumbent_values.append(self.incumbent_value)
-                self.time_func_eval.append(sum([sum(a.costs) for a in arms]))
-                self.runtime.append(time.time() - self.time_start)
-                if self.output_path is not None:
-                    self.save_output()
+                    # book keeping
+                    self.incumbents.append(self.incumbent)
+                    self.incumbent_values.append(self.incumbent_value)
+                    self.time_func_eval.append(sum([sum(a.costs) for a in arms]))
+                    self.runtime.append(time.time() - self.time_start)
+                    if self.output_path is not None:
+                        self.save_output()
 
-            for i in range(len(arms)):
-                if len(arms[bandit[i].identifier].costs) == bandit[0].num_pulls:
-                    self.X.append(arms[bandit[i].identifier].configuration)
-                    self.Y.append(bandit[i].estimated_mean)
+                for i in range(len(arms)):
+                    if len(arms[bandit[i].identifier].costs) == bandit[0].num_pulls:
+                        self.X.append(arms[bandit[i].identifier].configuration)
+                        self.Y.append(bandit[i].estimated_mean)
 
 
     def choose_next(self, X=None, Y=None):

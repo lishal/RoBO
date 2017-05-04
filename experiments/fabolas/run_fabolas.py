@@ -92,9 +92,9 @@ bounds = np.array(info['bounds'])
 lower = bounds[:, 0]
 upper = bounds[:, 1]
 results = fabolas(objective_function=objective, lower=lower, upper=upper,
-                  s_min=s_min, s_max=s_max, n_init=10, num_iterations=num_iterations,
+                  s_min=s_min, s_max=s_max, n_init=10, num_iterations=1000,
                   n_hypers=30, subsets=subsets,
-                  rng=rng, output_path=output_path)
+                  rng=rng, output_path=output_path,run_time = 12*3600)
 
 results["run_id"] = run_id
 results['X'] = results['X'].tolist()

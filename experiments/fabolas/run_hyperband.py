@@ -70,7 +70,7 @@ for c in opt.incumbents:
         error = inc_dict(tuple(c))
     else:
         error = f.objective_function_test(c)["function_value"]
-        inc_dict(tuple(c)) = error
+        inc_dict[tuple(c)] = error
     test_error.append(error)
 
     results = dict()

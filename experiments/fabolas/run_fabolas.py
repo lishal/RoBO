@@ -42,7 +42,7 @@ elif dataset == "covertype":
     f = SvmOnCovertype(rng=rng)
     num_iterations = 80
     output_path = "./experiments/fabolas/results/svm_%s/fabolas_%d" % (dataset, run_id)
-    s_max = f.train.shape[0]
+    s_max = f.train.shape[0] 
     print("training set size: %d",s_max)
     s_min = 100  # 10 * number of classes
     subsets = [64., 32, 16, 8]
@@ -108,12 +108,12 @@ key = "incumbents"
 
 for inc in results["incumbents"]:
     print(inc)
-    if inc in inc_dict: 
-        test_error.append(inc_dict[inc])
+    if tuple(inc) in inc_dict: 
+        test_error.append(inc_dict[tuple(inc)])
     else:
         y = f.objective_function_test(inc)["function_value"]
         test_error.append(y)
-        inc_dict[inc] = y
+        inc_dict[tuple(inc)] = y
 
     results["test_error"] = test_error
 

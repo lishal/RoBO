@@ -64,8 +64,14 @@ opt = HyperBand_DataSubsets(f, eta, eta**(-(B-1)), output_path=output_path, rng=
 opt.run(int(20 / B),12*3600)
 
 test_error = []
+inc_dict = {}
 for c in opt.incumbents:
-    test_error.append(f.objective_function_test(c)["function_value"])
+    if tuple(c) in inc_dict:
+        error = inc_dict(tuple(c))
+    else:
+        error = f.objective_function_test(c)["function_value"]
+        inc_dict(tuple(c)) = error
+    test_error.append(error)
 
     results = dict()
     results["incumbents"] = opt.incumbents

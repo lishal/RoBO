@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import numpy as np
+import time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -34,7 +35,8 @@ elif dataset == "vehicle":
     num_iterations = 80
     output_path = "./experiments/fabolas/results/svm_%s/fabolas_%d" % (dataset, run_id)
     s_max = f.train.shape[0]
-    print("training set size: %d",s_max)
+    print("training set size: ",s_max)
+    print("valid set size: ",f.valid.shape[0])
     s_min = 100  # 10 * number of classes
     subsets = [64., 32, 16, 8]
 
@@ -111,9 +113,11 @@ for inc in results["incumbents"]:
     if tuple(inc) in inc_dict: 
         test_error.append(inc_dict[tuple(inc)])
     else:
+        start_time = time.time()
         y = f.objective_function_test(inc)["function_value"]
-        test_error.append(y)
-        inc_dict[tuple(inc)] = y
+        duration = time.time() - start_time
+        test_error.append([y,duration])
+        inc_dict[tuple(inc)] = [y,duration] 
 
     results["test_error"] = test_error
 

@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import numpy as np
+import time
 
 logging.basicConfig(level=logging.INFO)
 
@@ -78,11 +79,14 @@ test_error = []
 inc_dict = {}
 for c in opt.incumbents:
     if tuple(c) in inc_dict:
-        error = inc_dict(tuple(c))
+        error_dur = inc_dict(tuple(c))
     else:
+        start_time = time.time()
         error = f.objective_function_test(c)["function_value"]
-        inc_dict[tuple(c)] = error
-    test_error.append(error)
+        duration = time.time() - start_time
+        error_dur = [error,duration]
+        inc_dict[tuple(c)] = error_dur 
+    test_error.append(error_dur)
 
     results = dict()
     results["incumbents"] = opt.incumbents

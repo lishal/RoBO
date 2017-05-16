@@ -29,6 +29,16 @@ elif dataset == "vehicle":
     output_path = "./experiments/fabolas/results/svm_%s/hyperband_%d" % (dataset, run_id)
     s_max = f.train.shape[0]
     s_min = 100
+elif dataset == "mnist_random":
+    f = SvmOnMnist(rng=rng)
+    output_path = "./experiments/fabolas/results/svm_%s/hyperband_%d" % (dataset, run_id)
+    s_max = f.train.shape[0]
+    s_min = s_max 
+elif dataset == "vehicle_random":
+    f = SvmOnVehicle(rng=rng)
+    output_path = "./experiments/fabolas/results/svm_%s/hyperband_%d" % (dataset, run_id)
+    s_max = f.train.shape[0]
+    s_min = s_max 
 elif dataset == "covertype":
     f = SvmOnCovertype(rng=rng)
     output_path = "./experiments/fabolas/results/svm_%s/hyperband_%d" % (dataset, run_id)
@@ -56,6 +66,7 @@ if 'loggingInitialized' not in locals():
     logging.basicConfig(level=logging.DEBUG,filename=path)
 eta = 4.
 B = -int(np.log(s_min/s_max)/np.log(eta))+1
+#B = 1
 
 print(B)
 

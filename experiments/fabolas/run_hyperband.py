@@ -73,13 +73,15 @@ print(B)
 
 opt = HyperBand_DataSubsets(f, eta, eta**(-(B-1)), output_path=output_path, rng=rng)
 
-opt.run(int(20 / B),12*3600)
+opt.run(int(50 / B),12*3600)
 
 test_error = []
 inc_dict = {}
-for c in opt.incumbents:
+incumbents = [inc.get_dictionary() for inc in opt.incumbents]
+incumbents = [[c[hp] for hp in c] for c in incumbents]
+for c in incumbents:
     if tuple(c) in inc_dict:
-        error_dur = inc_dict(tuple(c))
+        error_dur = inc_dict[tuple(c)]
     else:
         start_time = time.time()
         error = f.objective_function_test(c)["function_value"]
@@ -89,7 +91,7 @@ for c in opt.incumbents:
     test_error.append(error_dur)
 
     results = dict()
-    results["incumbents"] = opt.incumbents
+    results["incumbents"] = incumbents 
     results["test_error"] = test_error
     results["runtime"] = opt.runtime
     results["time_func_eval"] = opt.time_func_eval

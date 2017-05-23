@@ -77,7 +77,6 @@ opt.run(int(50 / B),12*3600)
 
 test_error = []
 inc_dict = {}
-incumbents = [inc.get_dictionary() for inc in opt.incumbents]
 incumbents = [[c[hp] for hp in c] for c in incumbents]
 for c in incumbents:
     if tuple(c) in inc_dict:
